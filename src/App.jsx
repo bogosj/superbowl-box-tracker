@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import LZString from 'lz-string';
-import Onboarding from './components/Onboarding';
 import Header from './components/Header';
 import PoolList from './components/PoolList';
 import AddPoolModal from './components/AddPoolModal';
 
+const DEFAULT_TEAMS = {
+  teamA: 'Seahawks',
+  teamB: 'Patriots'
+};
+
 function App() {
-  const [teams, setTeams] = useState(null);
+  const [teams, setTeams] = useState(DEFAULT_TEAMS);
   const [score, setScore] = useState({ teamA: 0, teamB: 0 });
   const [pools, setPools] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,10 +26,9 @@ function App() {
         const decompressed = LZString.decompressFromEncodedURIComponent(sharedData);
         if (decompressed) {
           const parsed = JSON.parse(decompressed);
-          if (parsed.teams && parsed.pools) {
-            setTeams(parsed.teams);
+          if (parsed.pools) {
             setPools(parsed.pools);
-            // Clean URL
+            setTeams(DEFAULT_TEAMS); // Force default teams
             window.history.replaceState({}, document.title, window.location.pathname);
             setLoading(false);
             return;
@@ -36,20 +39,17 @@ function App() {
       }
     }
 
-    const savedTeams = localStorage.getItem('sbt_teams');
     const savedScore = localStorage.getItem('sbt_score');
     const savedPools = localStorage.getItem('sbt_pools');
 
-    if (savedTeams) setTeams(JSON.parse(savedTeams));
+    setTeams(DEFAULT_TEAMS);
     if (savedScore) setScore(JSON.parse(savedScore));
     if (savedPools) setPools(JSON.parse(savedPools));
     setLoading(false);
   }, []);
 
   // Save data effects
-  useEffect(() => {
-    if (teams) localStorage.setItem('sbt_teams', JSON.stringify(teams));
-  }, [teams]);
+  // Teams are constant, no need to save
 
   useEffect(() => {
     localStorage.setItem('sbt_score', JSON.stringify(score));
@@ -59,9 +59,7 @@ function App() {
     localStorage.setItem('sbt_pools', JSON.stringify(pools));
   }, [pools]);
 
-  const handleSetTeams = (newTeams) => {
-    setTeams(newTeams);
-  };
+
 
   const handleScoreChange = (team, value) => {
     setScore(prev => ({
@@ -96,9 +94,7 @@ function App() {
 
   if (loading) return null;
 
-  if (!teams) {
-    return <Onboarding onSetTeams={handleSetTeams} />;
-  }
+
 
   const winningScore = {
     a: score.teamA % 10,
@@ -107,17 +103,32 @@ function App() {
 
   return (
     <div className="container fade-in" style={{ paddingBottom: '6rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', marginTop: '0.5rem' }}>
+        <img src="/logo_seahawks.png" alt="Seahawks" style={{ height: '50px', objectFit: 'contain' }} onError={(e) => e.target.style.display = 'none'} />
+        <h1 style={{ margin: '0 1rem', fontSize: '1.5rem', alignSelf: 'center' }}>Superbowl LX</h1>
+        <img src="/logo_patriots.png" alt="Patriots" style={{ height: '50px', objectFit: 'contain' }} onError={(e) => e.target.style.display = 'none'} />
+      </div>
+
       <Header teams={teams} score={score} onScoreChange={handleScoreChange} />
 
       <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ margin: 0 }}>My Pools</h2>
-        <button
-          onClick={handleShare}
-          className="secondary-btn"
-          style={{ fontSize: '0.9rem', padding: '0.5rem 1rem' }}
-        >
-          Share
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button
+            onClick={handleReset}
+            className="secondary-btn"
+            style={{ fontSize: '0.9rem', padding: '0.5rem 1rem', color: '#ef4444', borderColor: '#ef4444' }}
+          >
+            Reset
+          </button>
+          <button
+            onClick={handleShare}
+            className="secondary-btn"
+            style={{ fontSize: '0.9rem', padding: '0.5rem 1rem' }}
+          >
+            Share
+          </button>
+        </div>
       </div>
 
       <PoolList

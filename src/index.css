@@ -6,13 +6,13 @@
   --card-border: rgba(255, 255, 255, 0.1);
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  --accent-color: #38bdf8;
-  /* Sky blue */
+  --accent-color: #69BE28;
+  /* Seahawks Green */
+  --highlight-color: #C60C30;
+  /* Patriots Red */
+  --font-family: 'Inter', sans-serif;
   --success-color: #4ade80;
   /* Green */
-  --highlight-color: #f472b6;
-  /* Pink/Rose for highlights */
-  --font-family: 'Inter', sans-serif;
 
   --glass-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
