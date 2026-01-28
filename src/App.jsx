@@ -92,15 +92,7 @@ function App() {
     }
   };
 
-  const handleReset = () => {
-    if (window.confirm('Are you sure you want to RESET everything? This will delete all pools and scores.')) {
-      setScore({ teamA: 0, teamB: 0 });
-      setPools([]);
-      localStorage.removeItem('sbt_score');
-      localStorage.removeItem('sbt_pools');
-      window.location.reload();
-    }
-  };
+
 
   if (loading) return null;
 
@@ -124,13 +116,6 @@ function App() {
       <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ margin: 0 }}>My Pools</h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button
-            onClick={handleReset}
-            className="secondary-btn"
-            style={{ fontSize: '0.9rem', padding: '0.5rem 1rem', color: '#ef4444', borderColor: '#ef4444' }}
-          >
-            Reset
-          </button>
           <button
             onClick={handleShare}
             className="secondary-btn"
