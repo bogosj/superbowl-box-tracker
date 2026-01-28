@@ -1,16 +1,35 @@
-# React + Vite
+# Superbowl Box Tracker PWA 🏈
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, mobile-friendly Progressive Web App (PWA) to track your Superbowl squares and pools.
 
-Currently, two official plugins are available:
+**Live App:** [https://boxes.bogosian.dev](https://boxes.bogosian.dev)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+![App Screenshot](./public/pwa-512x512.png)
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **🏆 2026 Superbowl LX Ready**: Pre-configured for **Seattle Seahawks** vs **New England Patriots**.
+- **📱 PWA & Offline First**: Installable on iOS/Android and works without an internet connection.
+- **🔢 Smart Winning Logic**: Automatically highlights your winning numbers based on the current score (Score % 10).
+- **📝 Multiple Pools**: Track as many different pools as you need, each with multiple number pairs.
+- **🔗 Shareable Links**: Generate a unique URL containing all your pools and teams to share with friends.
+- **🎨 Premium Design**: Glassmorphism UI with team-specific theming.
 
-## Expanding the ESLint configuration
+## How to Use
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1.  **Add a Pool**: Tap the **+ Add Pool** button.
+2.  **Enter Numbers**: Input your row/column numbers for the Seahawks and Patriots. Add notes for winnings (e.g., "$50 Q1").
+3.  **Track Score**: As the game progresses, update the score at the top.
+4.  **Win!**: If your numbers match the last digit of the score, your pool card will light up green!
+5.  **Share**: Use the **Share** button to copy a link that sends your exact board setup to a friend.
+
+## Tech Stack
+
+- **Framework**: React + Vite
+- **Styling**: Vanilla CSS (Glassmorphism)
+- **State**: LocalStorage + URL Parameters (`lz-string` compression)
+- **Deployment**: GitHub Pages (via GitHub Actions)
+
+## License
+
+MIT
