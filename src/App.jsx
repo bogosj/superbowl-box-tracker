@@ -92,6 +92,16 @@ function App() {
     }
   };
 
+  const handleReset = () => {
+    if (window.confirm('Are you sure you want to RESET everything? This will delete all pools and scores.')) {
+      setScore({ teamA: 0, teamB: 0 });
+      setPools([]);
+      localStorage.removeItem('sbt_score');
+      localStorage.removeItem('sbt_pools');
+      window.location.reload();
+    }
+  };
+
   if (loading) return null;
 
 
