@@ -35,7 +35,7 @@ function App() {
   const [pools, setPools] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isLive, setIsLive] = useState(false);
+  const [isLive, setIsLive] = useState(true);
 
   // Update teams when active game changes
   useEffect(() => {

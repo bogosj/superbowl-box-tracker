@@ -27,7 +27,7 @@ export default function Header({ teams, score, onScoreChange, isLive, onToggleLi
                         onChange={onToggleLive}
                         style={{ width: 'auto' }}
                     />
-                    Live Updates (Exp)
+                    Live Updates (<i>experimental</i>)
                 </label>
             </div>
 
