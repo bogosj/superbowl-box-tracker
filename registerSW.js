@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/superbowl-box-tracker/sw.js', { scope: '/superbowl-box-tracker/' })})}
