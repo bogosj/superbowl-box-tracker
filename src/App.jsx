@@ -15,6 +15,7 @@ function App() {
   const [pools, setPools] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isLive, setIsLive] = useState(false);
 
   // Load data from URL or localStorage
   useEffect(() => {
@@ -58,6 +59,46 @@ function App() {
   useEffect(() => {
     localStorage.setItem('sbt_pools', JSON.stringify(pools));
   }, [pools]);
+
+  // Live Score Polling
+  useEffect(() => {
+    if (!isLive) return;
+
+    const fetchScore = async () => {
+      try {
+        const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
+        const data = await res.json();
+
+        // Find the specific game
+        const event = data.events?.find(e => {
+          const names = e.shortName?.toLowerCase() || "";
+          return names.includes('seahawks') || names.includes('patriots') ||
+            (e.competitions?.[0]?.competitors?.some(c => c.team?.displayName?.includes('Seahawks'))) ||
+            e.name.includes('Super Bowl');
+        });
+
+        if (event) {
+          const competition = event.competitions[0];
+          const seahawks = competition.competitors.find(c => c.team.displayName.includes('Seahawks'));
+          const patriots = competition.competitors.find(c => c.team.displayName.includes('Patriots'));
+
+          if (seahawks && patriots) {
+            setScore({
+              teamA: parseInt(seahawks.score), // Team A is Seahawks
+              teamB: parseInt(patriots.score)  // Team B is Patriots
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching live score:", err);
+      }
+    };
+
+    fetchScore(); // Initial fetch
+    const interval = setInterval(fetchScore, 60000); // Poll every 60s
+
+    return () => clearInterval(interval);
+  }, [isLive]);
 
 
 
@@ -111,7 +152,13 @@ function App() {
         <img src="/logo_patriots.png" alt="Patriots" style={{ height: '50px', objectFit: 'contain' }} onError={(e) => e.target.style.display = 'none'} />
       </div>
 
-      <Header teams={teams} score={score} onScoreChange={handleScoreChange} />
+      <Header
+        teams={teams}
+        score={score}
+        onScoreChange={handleScoreChange}
+        isLive={isLive}
+        onToggleLive={() => setIsLive(!isLive)}
+      />
 
       <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ margin: 0 }}>My Pools</h2>

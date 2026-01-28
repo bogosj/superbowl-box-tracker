@@ -1,4 +1,4 @@
-export default function Header({ teams, score, onScoreChange }) {
+export default function Header({ teams, score, onScoreChange, isLive, onToggleLive }) {
     const winningA = score.teamA % 10;
     const winningB = score.teamB % 10;
 
@@ -12,11 +12,23 @@ export default function Header({ teams, score, onScoreChange }) {
             backgroundColor: 'rgba(30, 41, 59, 0.9)', // More opaque for sticky
             backdropFilter: 'blur(16px)'
         }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h2 style={{ fontSize: '1.1rem', margin: 0, opacity: 0.8 }}>Current Score</h2>
-                <div style={{ fontSize: '0.9rem', color: 'var(--success-color)', fontWeight: 'bold' }}>
-                    Winning: {winningA} - {winningB}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                <div>
+                    <h2 style={{ fontSize: '1.1rem', margin: 0, opacity: 0.8 }}>Current Score</h2>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--success-color)', fontWeight: 'bold' }}>
+                        Winning: {winningA} - {winningB}
+                    </div>
                 </div>
+
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.8rem', opacity: 0.8 }}>
+                    <input
+                        type="checkbox"
+                        checked={isLive}
+                        onChange={onToggleLive}
+                        style={{ width: 'auto' }}
+                    />
+                    Live Updates (Exp)
+                </label>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
