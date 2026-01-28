@@ -4,18 +4,43 @@ import Header from './components/Header';
 import PoolList from './components/PoolList';
 import AddPoolModal from './components/AddPoolModal';
 
-const DEFAULT_TEAMS = {
-  teamA: 'Seahawks',
-  teamB: 'Patriots'
+const GAME_CONFIG = {
+  superbowl: {
+    id: 'superbowl',
+    label: 'Super Bowl LX',
+    teamA: 'Seahawks',
+    teamB: 'Patriots',
+    logoA: '/logo_seahawks.png',
+    logoB: '/logo_patriots.png'
+  },
+  probowl: {
+    id: 'probowl',
+    label: 'Pro Bowl Phone It In',
+    teamA: 'AFC',
+    teamB: 'NFC',
+    logoA: '/logo_afc.png',
+    logoB: '/logo_nfc.png'
+  }
+};
+
+const DEFAULT_SCORES = {
+  superbowl: { teamA: 0, teamB: 0 },
+  probowl: { teamA: 0, teamB: 0 }
 };
 
 function App() {
-  const [teams, setTeams] = useState(DEFAULT_TEAMS);
-  const [score, setScore] = useState({ teamA: 0, teamB: 0 });
+  const [activeGame, setActiveGame] = useState('superbowl');
+  const [teams, setTeams] = useState(GAME_CONFIG.superbowl);
+  const [score, setScore] = useState(DEFAULT_SCORES);
   const [pools, setPools] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isLive, setIsLive] = useState(false);
+
+  // Update teams when active game changes
+  useEffect(() => {
+    setTeams(GAME_CONFIG[activeGame]);
+  }, [activeGame]);
 
   // Load data from URL or localStorage
   useEffect(() => {
@@ -27,13 +52,21 @@ function App() {
         const decompressed = LZString.decompressFromEncodedURIComponent(sharedData);
         if (decompressed) {
           const parsed = JSON.parse(decompressed);
-          if (parsed.pools) {
-            setPools(parsed.pools);
-            setTeams(DEFAULT_TEAMS); // Force default teams
-            window.history.replaceState({}, document.title, window.location.pathname);
-            setLoading(false);
-            return;
+
+          let loadedPools = [];
+
+          if (Array.isArray(parsed.pools)) {
+            // Check if legacy (no gameId) - default to superbowl
+            loadedPools = parsed.pools.map(p => ({
+              ...p,
+              gameId: p.gameId || 'superbowl'
+            }));
           }
+
+          setPools(loadedPools);
+          window.history.replaceState({}, document.title, window.location.pathname);
+          setLoading(false);
+          return;
         }
       } catch (e) {
         console.error("Failed to parse shared data", e);
@@ -43,15 +76,42 @@ function App() {
     const savedScore = localStorage.getItem('sbt_score');
     const savedPools = localStorage.getItem('sbt_pools');
 
-    setTeams(DEFAULT_TEAMS);
-    if (savedScore) setScore(JSON.parse(savedScore));
-    if (savedPools) setPools(JSON.parse(savedPools));
+    // Migration logic for local storage
+    if (savedScore) {
+      try {
+        const parsedScore = JSON.parse(savedScore);
+        // Check if legacy score format (flat object)
+        if (typeof parsedScore.teamA === 'number') {
+          setScore({
+            ...DEFAULT_SCORES,
+            superbowl: parsedScore
+          });
+        } else {
+          setScore(parsedScore);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    if (savedPools) {
+      try {
+        const parsedPools = JSON.parse(savedPools);
+        // Migrate legacy pools
+        const migratedPools = parsedPools.map(p => ({
+          ...p,
+          gameId: p.gameId || 'superbowl'
+        }));
+        setPools(migratedPools);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     setLoading(false);
   }, []);
 
   // Save data effects
-  // Teams are constant, no need to save
-
   useEffect(() => {
     localStorage.setItem('sbt_score', JSON.stringify(score));
   }, [score]);
@@ -69,26 +129,57 @@ function App() {
         const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
         const data = await res.json();
 
+        let newScores = { ...score };
+        let updated = false;
+
+        // Process Super Bowl (Seahawks vs Patriots)
         // Find the specific game
-        const event = data.events?.find(e => {
+        const sbEvent = data.events?.find(e => {
           const names = e.shortName?.toLowerCase() || "";
           return names.includes('seahawks') || names.includes('patriots') ||
             (e.competitions?.[0]?.competitors?.some(c => c.team?.displayName?.includes('Seahawks'))) ||
             e.name.includes('Super Bowl');
         });
 
-        if (event) {
-          const competition = event.competitions[0];
+        if (sbEvent) {
+          const competition = sbEvent.competitions[0];
           const seahawks = competition.competitors.find(c => c.team.displayName.includes('Seahawks'));
           const patriots = competition.competitors.find(c => c.team.displayName.includes('Patriots'));
 
           if (seahawks && patriots) {
-            setScore({
-              teamA: parseInt(seahawks.score), // Team A is Seahawks
-              teamB: parseInt(patriots.score)  // Team B is Patriots
-            });
+            newScores.superbowl = {
+              teamA: parseInt(seahawks.score),
+              teamB: parseInt(patriots.score)
+            };
+            updated = true;
           }
         }
+
+        // Process Pro Bowl (NFC vs AFC)
+        // Note: ESPN API usually lists Pro Bowl as NFC vs AFC or similar
+        const pbEvent = data.events?.find(e => {
+          const name = e.name?.toLowerCase() || "";
+          return name.includes('pro bowl') || (name.includes('afc') && name.includes('nfc'));
+        });
+
+        if (pbEvent) {
+          const competition = pbEvent.competitions[0];
+          const afc = competition.competitors.find(c => c.team.abbreviation === 'AFC' || c.team.displayName === 'AFC');
+          const nfc = competition.competitors.find(c => c.team.abbreviation === 'NFC' || c.team.displayName === 'NFC');
+
+          if (afc && nfc) {
+            newScores.probowl = {
+              teamA: parseInt(afc.score), // Team A is AFC in config
+              teamB: parseInt(nfc.score)  // Team B is NFC in config
+            };
+            updated = true;
+          }
+        }
+
+        if (updated) {
+          setScore(newScores);
+        }
+
       } catch (err) {
         console.error("Error fetching live score:", err);
       }
@@ -98,19 +189,23 @@ function App() {
     const interval = setInterval(fetchScore, 60000); // Poll every 60s
 
     return () => clearInterval(interval);
-  }, [isLive]);
+  }, [isLive, score]);
 
 
 
   const handleScoreChange = (team, value) => {
     setScore(prev => ({
       ...prev,
-      [team]: value
+      [activeGame]: {
+        ...prev[activeGame],
+        [team]: value
+      }
     }));
   };
 
   const handleAddPool = (newPool) => {
-    setPools(prev => [newPool, ...prev]);
+    const poolWithGame = { ...newPool, gameId: activeGame };
+    setPools(prev => [poolWithGame, ...prev]);
   };
 
   const handleDeletePool = (id) => {
@@ -120,61 +215,97 @@ function App() {
   };
 
   const handleShare = async () => {
-    const data = { teams, pools };
+    // Share ALL pools, not just active ones
+    const data = { pools };
     const compressed = LZString.compressToEncodedURIComponent(JSON.stringify(data));
     const url = `${window.location.origin}${window.location.pathname}?data=${compressed}`;
 
     try {
       await navigator.clipboard.writeText(url);
-      alert('Link copied to clipboard!');
+      alert('Link copied to clipboard! (Includes pools for both games)');
     } catch (err) {
       console.error('Failed to copy: ', err);
       prompt('Copy this link:', url);
     }
   };
 
-
-
   if (loading) return null;
 
-
-
+  const currentScore = score[activeGame];
   const winningScore = {
-    a: score.teamA % 10,
-    b: score.teamB % 10
+    a: currentScore.teamA % 10,
+    b: currentScore.teamB % 10
   };
+
+  // Filter pools for active game
+  const activePools = pools.filter(p => p.gameId === activeGame);
 
   return (
     <div className="container fade-in" style={{ paddingBottom: '6rem' }}>
+
+      {/* Game Tabs */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.05)', padding: '0.25rem', borderRadius: '2rem', width: 'fit-content', marginInline: 'auto', marginTop: '1rem' }}>
+        <button
+          onClick={() => setActiveGame('superbowl')}
+          style={{
+            background: activeGame === 'superbowl' ? 'rgba(255,255,255,0.2)' : 'transparent',
+            padding: '0.5rem 1.5rem',
+            borderRadius: '1.5rem',
+            border: 'none',
+            color: 'white',
+            fontWeight: activeGame === 'superbowl' ? 'bold' : 'normal',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          Super Bowl
+        </button>
+        <button
+          onClick={() => setActiveGame('probowl')}
+          style={{
+            background: activeGame === 'probowl' ? 'rgba(255,255,255,0.2)' : 'transparent',
+            padding: '0.5rem 1.5rem',
+            borderRadius: '1.5rem',
+            border: 'none',
+            color: 'white',
+            fontWeight: activeGame === 'probowl' ? 'bold' : 'normal',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          Pro Bowl
+        </button>
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', marginTop: '0.5rem' }}>
-        <img src="/logo_seahawks.png" alt="Seahawks" style={{ height: '50px', objectFit: 'contain' }} onError={(e) => e.target.style.display = 'none'} />
-        <h1 style={{ margin: '0 1rem', fontSize: '1.5rem', alignSelf: 'center' }}>Superbowl LX</h1>
-        <img src="/logo_patriots.png" alt="Patriots" style={{ height: '50px', objectFit: 'contain' }} onError={(e) => e.target.style.display = 'none'} />
+        <img src={teams.logoA} alt={teams.teamA} style={{ height: '50px', objectFit: 'contain' }} onError={(e) => e.target.style.display = 'none'} />
+        <h1 style={{ margin: '0 1rem', fontSize: '1.5rem', alignSelf: 'center' }}>{teams.label}</h1>
+        <img src={teams.logoB} alt={teams.teamB} style={{ height: '50px', objectFit: 'contain' }} onError={(e) => e.target.style.display = 'none'} />
       </div>
 
       <Header
         teams={teams}
-        score={score}
+        score={currentScore}
         onScoreChange={handleScoreChange}
         isLive={isLive}
         onToggleLive={() => setIsLive(!isLive)}
       />
 
       <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0 }}>My Pools</h2>
+        <h2 style={{ margin: 0 }}>My Pools ({activePools.length})</h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button
             onClick={handleShare}
             className="secondary-btn"
             style={{ fontSize: '0.9rem', padding: '0.5rem 1rem' }}
           >
-            Share
+            Share All
           </button>
         </div>
       </div>
 
       <PoolList
-        pools={pools}
+        pools={activePools}
         teams={teams}
         winningScore={winningScore}
         onDeletePool={handleDeletePool}
@@ -193,7 +324,12 @@ function App() {
           fontSize: '1.1rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.5rem'
+          gap: '0.5rem',
+          background: 'var(--primary-gradient)', // Ensure this is set or default
+          border: 'none',
+          color: 'white',
+          fontWeight: 'bold',
+          cursor: 'pointer'
         }}
       >
         <span style={{ fontSize: '1.5rem', lineHeight: 0 }}>+</span> Add Pool
