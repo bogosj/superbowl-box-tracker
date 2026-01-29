@@ -129,56 +129,64 @@ function App() {
         const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
         const data = await res.json();
 
-        let newScores = { ...score };
-        let updated = false;
+        setScore(prevScore => {
+          let newScores = { ...prevScore };
+          let updated = false;
 
-        // Process Super Bowl (Seahawks vs Patriots)
-        // Find the specific game
-        const sbEvent = data.events?.find(e => {
-          const names = e.shortName?.toLowerCase() || "";
-          return names.includes('seahawks') || names.includes('patriots') ||
-            (e.competitions?.[0]?.competitors?.some(c => c.team?.displayName?.includes('Seahawks'))) ||
-            e.name.includes('Super Bowl');
-        });
+          // Process Super Bowl (Seahawks vs Patriots)
+          const sbEvent = data.events?.find(e => {
+            const names = e.shortName?.toLowerCase() || "";
+            return names.includes('seahawks') || names.includes('patriots') ||
+              (e.competitions?.[0]?.competitors?.some(c => c.team?.displayName?.includes('Seahawks'))) ||
+              e.name.includes('Super Bowl');
+          });
 
-        if (sbEvent) {
-          const competition = sbEvent.competitions[0];
-          const seahawks = competition.competitors.find(c => c.team.displayName.includes('Seahawks'));
-          const patriots = competition.competitors.find(c => c.team.displayName.includes('Patriots'));
+          if (sbEvent) {
+            const competition = sbEvent.competitions[0];
+            const seahawks = competition.competitors.find(c => c.team.displayName.includes('Seahawks'));
+            const patriots = competition.competitors.find(c => c.team.displayName.includes('Patriots'));
 
-          if (seahawks && patriots) {
-            newScores.superbowl = {
-              teamA: parseInt(seahawks.score),
-              teamB: parseInt(patriots.score)
-            };
-            updated = true;
+            if (seahawks && patriots) {
+              const newTeamA = parseInt(seahawks.score);
+              const newTeamB = parseInt(patriots.score);
+
+              if (newScores.superbowl.teamA !== newTeamA || newScores.superbowl.teamB !== newTeamB) {
+                newScores.superbowl = {
+                  teamA: newTeamA,
+                  teamB: newTeamB
+                };
+                updated = true;
+              }
+            }
           }
-        }
 
-        // Process Pro Bowl (NFC vs AFC)
-        // Note: ESPN API usually lists Pro Bowl as NFC vs AFC or similar
-        const pbEvent = data.events?.find(e => {
-          const name = e.name?.toLowerCase() || "";
-          return name.includes('pro bowl') || (name.includes('afc') && name.includes('nfc'));
-        });
+          // Process Pro Bowl (NFC vs AFC)
+          const pbEvent = data.events?.find(e => {
+            const name = e.name?.toLowerCase() || "";
+            return name.includes('pro bowl') || (name.includes('afc') && name.includes('nfc'));
+          });
 
-        if (pbEvent) {
-          const competition = pbEvent.competitions[0];
-          const afc = competition.competitors.find(c => c.team.abbreviation === 'AFC' || c.team.displayName === 'AFC');
-          const nfc = competition.competitors.find(c => c.team.abbreviation === 'NFC' || c.team.displayName === 'NFC');
+          if (pbEvent) {
+            const competition = pbEvent.competitions[0];
+            const afc = competition.competitors.find(c => c.team.abbreviation === 'AFC' || c.team.displayName === 'AFC');
+            const nfc = competition.competitors.find(c => c.team.abbreviation === 'NFC' || c.team.displayName === 'NFC');
 
-          if (afc && nfc) {
-            newScores.probowl = {
-              teamA: parseInt(afc.score), // Team A is AFC in config
-              teamB: parseInt(nfc.score)  // Team B is NFC in config
-            };
-            updated = true;
+            if (afc && nfc) {
+              const newTeamA = parseInt(afc.score);
+              const newTeamB = parseInt(nfc.score);
+
+              if (newScores.probowl.teamA !== newTeamA || newScores.probowl.teamB !== newTeamB) {
+                newScores.probowl = {
+                  teamA: newTeamA,
+                  teamB: newTeamB
+                };
+                updated = true;
+              }
+            }
           }
-        }
 
-        if (updated) {
-          setScore(newScores);
-        }
+          return updated ? newScores : prevScore;
+        });
 
       } catch (err) {
         console.error("Error fetching live score:", err);
@@ -189,7 +197,7 @@ function App() {
     const interval = setInterval(fetchScore, 60000); // Poll every 60s
 
     return () => clearInterval(interval);
-  }, [isLive, score]);
+  }, [isLive]);
 
 
 
