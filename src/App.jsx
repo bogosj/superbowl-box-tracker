@@ -32,11 +32,11 @@ function App() {
         const decompressed = LZString.decompressFromEncodedURIComponent(sharedData);
         if (decompressed) {
           const parsed = JSON.parse(decompressed);
-          
+
           if (Array.isArray(parsed.pools)) {
             setPools(parsed.pools);
           } else {
-             setPools([]);
+            setPools([]);
           }
 
           window.history.replaceState({}, document.title, window.location.pathname);
@@ -176,7 +176,7 @@ function App() {
 
   return (
     <div className="container fade-in" style={{ paddingBottom: '6rem' }}>
-      
+
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem', marginTop: '1rem' }}>
         <img src={TEAMS.logoA} alt={TEAMS.teamA} style={{ height: '50px', objectFit: 'contain' }} onError={(e) => e.target.style.display = 'none'} />
         <h1 style={{ margin: '0 1rem', fontSize: '1.5rem', alignSelf: 'center' }}>{TEAMS.label}</h1>
@@ -208,6 +208,7 @@ function App() {
         pools={pools}
         teams={TEAMS}
         winningScore={winningScore}
+        score={score}
         onDeletePool={handleDeletePool}
       />
 
